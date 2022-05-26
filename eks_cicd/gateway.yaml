@@ -21,8 +21,7 @@ metadata:
   name: gateway-service
   namespace: demo
 spec:
-  hosts:
-  - ${DOMAIN_NAME}
+  hosts: reviews.prod.svc.cluster.local
   gateways:
   - service-gateway
   http:
