@@ -1,90 +1,120 @@
 pipeline {
     agent any
+
     environment {
-        AWS_ACCOUNT_ID="737971166371"
-        AWS_DEFAULT_REGION="us-east-1" 
-        IMAGE_REPO_NAME="books"
-        IMAGE_TAG="latest"
-        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+        dockerImage_books = ""
+        dockerImage_users = ""
+        dockerImage_library = ""
+        BOOK_REGISTRY = "737971166371.dkr.ecr.us-east-1.amazonaws.com/books"
+        PROFILE = 'deploy'
+        AWS_REGION = 'us-east-1'
+        REGISTRY_CREDENTIALS = 'AWS-Access'
     }
-   
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
+
+    parameters {
+        string (name: 'LB_DOMAIN_NAME', defaultValue: 'a9fdea6df74814f8790f5fcb5f62f00a-434091433.us-east-1.elb.amazonaws.com', description: "Domain Name for the Ingress LoadBalancer.")
+    }
+
     stages {
-        
-         stage('Logging into AWS ECR') {
+       stage('Set Environment Variable'){
             steps {
                 script {
-                sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+                    env.LB_DOMAIN_NAME = "${params.LB_DOMAIN_NAME}"
+
                 }
-                 
             }
         }
-        
-        stage('Cloning Git') {
-            steps {
-                 checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'kashif-cred', url: 'https://github.com/kashifahmed5/books.git']]])     
+        stage('Checkout & Environment Prep'){
+            steps{
+                script {
+                    wrap([$class: 'AnsiColorBuildWrapper', colorMapName: 'xterm']){
+                        withCredentials([
+                            [ $class: 'AmazonWebServicesCredentialsBinding',
+                                accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                                secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+                                credentialsId: 'AWS-Access',
+
+                            ]])
+                        {
+                            try {
+                                    echo "Setting Up Jump Instance."
+                                    sh ("""
+                                            aws configure --profile ${PROFILE} set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+                                            aws configure --profile ${PROFILE} set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+                                            aws configure --profile ${PROFILE} set region ${AWS_REGION}
+                                            export AWS_PROFILE=${PROFILE}
+                                    """)
+                            } catch (ex) {
+                                echo 'Err: Build Failed with Error: ' + ex.toString()
+                                currentBuild.result = "UNSTABLE"
+                            }
+                        }
+                        
+                    }
+                }
             }
         }
-  
-    // Building Docker images
-    stage('Building image') {
-      steps{
-        script {
-          dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
-        }
-      }
-    }
-     stage('Tag Image') {
-     steps{  
-         script {
-             sh "docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"
-         }
-        }
-     }
-   
-    // Uploading Docker images into AWS ECR
-    stage('Pushing to ECR') {
-     steps{  
-         script {
+        stage ('Docker Build'){
+            parallel {
+            
+                stage("Build BOOKS Application"){
+                    steps {
+                        script {
+                            dir("application-two") {
+                                dockerImage_books =  docker.build("${BOOK_REGISTRY}" + ":${env.BUILD_NUMBER}")
+                            }
+                        }
+                    }
+                }
                 
-                sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
-         }
-      }
-    }
-      stage('login k8s'){
-        steps{
-            sh"aws eks --region us-east-1 update-kubeconfig --name EKS_CLUSTER"
-        }
-    }
-    stage('deployment') {
-     steps{  
-         script {
-            sh"aws --region us-east-1 eks get-token --cluster-name EKS_CLUSTER"
-             sh"kubectl apply -f eks_cicd/namespace.yaml"
-             sh"kubectl apply -f eks_cicd/gateway.yaml"
-            sh"kubectl apply -f eks_cicd/deployment.yaml"
-            sh"kubectl rollout restart -f  eks_cicd/deployment.yaml "
-            
-              
-         }
-      }
-    }
-       stage('service') {
-     steps{  
-         script {
-            
-            sh"kubectl apply -f eks_cicd/service.yaml"
-              
-         }
-      }
-    }
-       stage('ingress') {
-     steps{  
-         script {
-            
-            sh"kubectl apply -f  eks_cicd/ingress.yaml  -o yaml"
-              
-         }
-      }
-    }
+        stage ("Docker Push") {
+            parallel {
+                
+                stage("Push Book Application"){
+                    steps {
+                        script {
+                            docker.withRegistry("https://" + "${BOOK_REGISTRY}", "ecr:us-east-1:" + "${REGISTRY_CREDENTIALS}") {
+                                dockerImage_books.push()
+                            }
+                        }
+                    }
+                }
+               
+
+        stage('Deploy Image to Kubernetes'){
+            steps {
+                script{
+                    wrap([$class: 'AnsiColorBuildWrapper', colorMapName: 'xterm']){
+                        withCredentials([
+                            [ $class: 'AmazonWebServicesCredentialsBinding',
+                                accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                                secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+                                credentialsId: 'AWS-Access',
+                            ]]) {
+                                dir("k8s"){
+                                    sh("""
+                                    
+                                    export BOOK_REGISTRY=$BOOK_REGISTRY
+                                    
+                                    export IMAGE_TAG=${env.BUILD_NUMBER}
+                                    export DOMAIN_NAME=$LB_DOMAIN_NAME
+                                    kubectl apply -f namespace.yaml
+                                    envsubst < ./gateway.yaml | kubectl apply -f -
+                                    envsubst < ./deployment.yaml | kubectl apply -f -
+                                    envsubst < ./service.yaml | kubectl apply -f -
+                                    """)
+                                }
+                            }
+                    }
+                }
+            }
+        } 
     }
 }
