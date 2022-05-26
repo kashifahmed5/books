@@ -21,7 +21,7 @@ pipeline {
         
         stage('Cloning Git') {
             steps {
-                 checkout([$class: 'GitSCM', branches: [[name: '**']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-privat-key', url: 'git@github.com:kashifahmed5/books.git']]])      
+                 checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'kashif-cred', url: 'https://github.com/kashifahmed5/books.git']]])     
             }
         }
   
