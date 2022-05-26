@@ -2,24 +2,24 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/name: USERS
-    app.kubernetes.io/instance: USERS-instance
+    app.kubernetes.io/name: books
+    app.kubernetes.io/instance: books-instance
     app.kubernetes.io/version: '1.0.0'
     app.kubernetes.io/managed-by: kubectl
-  name: USERS-deployment
+  name: books-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: USERS
+      app: books
   template:
     metadata:
       labels:
-        app: USERS
+        app: books
     spec:
       containers:
-        - image: 737971166371.dkr.ecr.us-east-1.amazonaws.com/users:latest
+        - image: 737971166371.dkr.ecr.us-east-1.amazonaws.com/books:latest
           imagePullPolicy: Always
-          name: users
+          name: books
           ports:
-            - containerPort: 5000
+            - containerPort: 7000

@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: jboss-ingress
+  name: books-ingress
   annotations:
     USERS.ingress.kubernetes.io/rewrite-target: /
 spec:
@@ -10,5 +10,5 @@ spec:
       paths:
       - path: /app
         backend:
-          serviceName: users
+          serviceName: books
           servicePort: 8080

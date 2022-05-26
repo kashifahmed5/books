@@ -3,7 +3,7 @@ pipeline {
     environment {
         AWS_ACCOUNT_ID="737971166371"
         AWS_DEFAULT_REGION="us-east-1" 
-        IMAGE_REPO_NAME="users"
+        IMAGE_REPO_NAME="books"
         IMAGE_TAG="latest"
         REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
     }
@@ -21,7 +21,7 @@ pipeline {
         
         stage('Cloning Git') {
             steps {
-                 checkout([$class: 'GitSCM', branches: [[name: '**']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-privat-key', url: 'git@github.com:kashifahmed5/users.git']]])      
+                 checkout([$class: 'GitSCM', branches: [[name: '**']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-privat-key', url: 'git@github.com:kashifahmed5/books.git']]])      
             }
         }
   
@@ -51,7 +51,7 @@ pipeline {
     stage('deployment') {
      steps{  
          script {
-            sh"aws --region us-east-1 eks get-token --cluster-name cluster-2"
+            sh"aws --region us-east-1 eks get-token --cluster-name EKS_CLUSTER"
             sh"kubectl apply -f eks_cicd/deployment.yaml"
             sh"kubectl rollout restart -f  eks_cicd/deployment.yaml "
             
