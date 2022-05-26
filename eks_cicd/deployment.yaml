@@ -1,25 +1,34 @@
-apiVersion: apps/v1
+---
 kind: Deployment
+apiVersion: apps/v1
 metadata:
+  name: books
+  namespace: demo
   labels:
-    app.kubernetes.io/name: books
-    app.kubernetes.io/instance: books-instance
-    app.kubernetes.io/version: '1.0.0'
-    app.kubernetes.io/managed-by: kubectl
-  name: books-deployment
+    app: books
+    version: v1
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: books
+      version: v1
   template:
     metadata:
       labels:
         app: books
+        version: v1
     spec:
       containers:
-        - image: 737971166371.dkr.ecr.us-east-1.amazonaws.com/books:latest
-          imagePullPolicy: Always
-          name: books
+        - name: books
+          image: ${BOOK_REGISTRY}:${IMAGE_TAG}
           ports:
-            - containerPort: 7000
+            - name: application
+              containerPort: 7000
+          resources:
+            requests:
+              memory: "10Mi"
+              cpu: "10m"
+            limits:
+              memory: "100Mi"
+              cpu: "100m"
