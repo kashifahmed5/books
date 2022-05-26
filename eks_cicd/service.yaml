@@ -1,18 +1,18 @@
-apiVersion: v1
+---
 kind: Service
+apiVersion: v1
 metadata:
-  labels:
-    app.kubernetes.io/name: books
-    app.kubernetes.io/instance: books-instance
-    app.kubernetes.io/version: "1.0.0"
-    app.kubernetes.io/component: backend
-    app.kubernetes.io/managed-by: kubectl
   name: books
+  namespace: demo
+  labels:
+    app: books
+    service: books
 spec:
+  type: ClusterIP
   selector:
     app: books
-  type: LoadBalancer
   ports:
-   -  protocol: TCP
-      port: 80
+    - name: http
+      protocol: TCP
+      port: 5000
       targetPort: 7000
