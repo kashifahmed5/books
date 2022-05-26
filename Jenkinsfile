@@ -86,6 +86,8 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
                
 
         stage('Deploy Image to Kubernetes'){
@@ -115,6 +117,7 @@ pipeline {
                     }
                 }
             }
-        } 
-    }
         }
+        
+    }
+}
