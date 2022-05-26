@@ -1,0 +1,18 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: books
+  namespace: demo
+  labels:
+    app: books
+    service: books
+spec:
+  type: ClusterIP
+  selector:
+    app: books
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 7000
