@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: books
-          image: ${BOOK_REGISTRY}:${IMAGE_TAG}
+          image: 737971166371.dkr.ecr.us-east-1.amazonaws.com/books:latest
           ports:
             - name: application
               containerPort: 7000
