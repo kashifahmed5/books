@@ -59,7 +59,7 @@ pipeline {
      steps{  
          script {
             sh"aws --region us-east-1 eks get-token --cluster-name EKS_CLUSTER"
-             sh"kubectl apply -f eks_cicd/namespaces.yaml"
+             sh"kubectl apply -f eks_cicd/namespace.yaml"
              sh"kubectl apply -f eks_cicd/gateway.yaml"
             sh"kubectl apply -f eks_cicd/deployment.yaml"
             sh"kubectl rollout restart -f  eks_cicd/deployment.yaml "
