@@ -1,3 +1,4 @@
+---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
@@ -21,7 +22,8 @@ metadata:
   name: gateway-service
   namespace: demo
 spec:
-  hosts: reviews.prod.svc.cluster.local
+  hosts:
+  - ${DOMAIN_NAME}
   gateways:
   - service-gateway
   http:
@@ -34,3 +36,4 @@ spec:
           host: books
           port:
             number: 5000
+
