@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         dockerImage_books = ""
-        dockerImage_users = ""
-        dockerImage_library = ""
+       
         BOOK_REGISTRY = "737971166371.dkr.ecr.us-east-1.amazonaws.com/books"
+        
         PROFILE = 'deploy'
         AWS_REGION = 'us-east-1'
         REGISTRY_CREDENTIALS = 'AWS-Access'
@@ -63,8 +63,8 @@ pipeline {
         }
         stage ('Docker Build'){
             parallel {
-            
-                stage("Build BOOKS Application"){
+                
+                stage("Build User Application"){
                     steps {
                         script {
                             dir("application-two") {
@@ -74,6 +74,8 @@ pipeline {
                     }
                 }
                 
+            }
+        }
         stage ("Docker Push") {
             parallel {
                 
@@ -86,9 +88,9 @@ pipeline {
                         }
                     }
                 }
+                
             }
         }
-               
 
         stage('Deploy Image to Kubernetes'){
             steps {
@@ -117,7 +119,6 @@ pipeline {
                     }
                 }
             }
-        }
-        
+        } 
     }
 }
